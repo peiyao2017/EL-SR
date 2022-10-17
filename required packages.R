@@ -1,0 +1,8 @@
+install.packages("ks")
+install.packages("el.convex")
+install.packages("MASS")
+install.packages("mvtnorm")
+library(ks)
+library(el.convex)
+library(mvtnorm)
+library(MASS)
