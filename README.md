@@ -2450,34 +2450,9 @@ sd(ARL0)/sqrt(1000)
 
 
 ```
-To compute $ARL_1$, we set the change point at the 50th observation. However, when the training sample is too small, the procedures produce to many false alarms before $n=50$. If a false alarm happens, we discard the current sequence and start a new one. If more than 10 false alarms occur, we stop the procedure and the function returns a "false". We repeat the function until we get 1000 simulated detection delays. Take the original EL for an example. The function el1_mean returns two elements, the delay of detection and a indicator telling if the change point is identified before the 1000th observation. If the change point is identified, the indicator is 0. Otherwise it is 1.
-```{r}
-arl1=numeric()
-repeat{
-  a=foreach(i=1:1000, .combine="c")%dopar%{
-    library(el.convex)
-    library(MASS)
-    el1_mean(threshold =250,m=20)
-  }
-  arl1=c(arl1,a[a!="false"])
-  if(length(arl1)>2000){
-    break
-  }
-}
+To compute elements under the alternative hypothesis, including $ARL_1$ and false alarm probability, we need to write R files in the results folder, which specifies the sample size and thresholds at the beginning. For false alarm probabilities, we did 1000 repetitions and record the number of false alarms, the number of stops before the change happens. For the delay of detections, we discard those sequences stop before the change point and only compute the delays of those sequences stop after the  change point. We repeat generating the sequence until we have 1000 delays of detection.\par
 
-arl1=arl1[1:2000]
-arl1=as.numeric(arl1)
-delay=numeric()
-nodetect=numeric()
-for(i in 1:1000){
-  delay[i]=arl1[2*i-1]
-  nodetect[i]=arl1[2*i]
-}
-mean(delay)
-sd(delay)/sqrt(1000)
-sum(nodetect)
-
-```
+To compute the relative integral average detection delay, we need the R functions and files in the folder "compute RIADD". The arguement v specifies the location of change point, we compute the infinite sum with the first 21 terms, v is from 0 to 20.\par
 ## Data
 
 The aircraft data mentioned in the paper is available as a spread sheet file on github. The data gives intervals between failures.
