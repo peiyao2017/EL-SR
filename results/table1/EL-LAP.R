@@ -1,0 +1,241 @@
+setwd("/panfs/jay/groups/20/panwei/wan01299/collider_bias/paper/table 1/ARL1")
+
+library(doParallel)
+number_of_cores=detectCores()
+myCluster <- makeCluster(number_of_cores-10, # number of cores to use
+                         type = "PSOCK") # type of cluster
+#notice that we need to leave one core for computer system
+registerDoParallel(myCluster)
+
+
+size=c(1000,200,100,20)
+thresholds=c(3000,2400,1900,1700)
+
+el1_laplace=function(m=100,mu0=0,mu1=0.5,threshold=200){
+  false=0
+  x=rnorm(n = m, mean=mu0,sd=1)
+  x1=rep(0,times=m)
+  x2=rep(0,times=m)
+  y1=0.5
+  y2=-0.5
+  for(i in 1:m){
+    x1[i]=exp(-y1*x[i])
+    x2[i]=exp(-y2*x[i])
+  }
+  x3=mean(x1)
+  x4=mean(x2)
+  x5=c(x3,x4)
+  x6=rnorm(n = m, mean=mu1,sd=1)
+  x7=matrix(0,ncol=2,nrow=m)
+  for(i in 1:m){
+    x7[i,]=c(exp(-y1*x6[i]),exp(-y2*x6[i]))
+  }
+  x8=colMeans(x7)
+  repeat{
+    c=3
+    repeat{
+      x9=numeric()
+      h0=matrix(0,c,2)
+      h1=matrix(0,c,2)
+      for(i in 1:c){
+        x9[i]=rnorm(n=1,mean=mu0,sd=1)
+      }
+      for(i in 1:c){
+        h0[i,]=c(exp(-y1*x9[i]),exp(-y2*x9[i]))-x5
+        h1[i,]=c(exp(-y1*x9[i]),exp(-y2*x9[i]))-x8
+      }
+      z=numeric()
+      repeat{
+        for(i in 1:(c-2)){
+          x10=h0[i:c,]
+          x11=h1[i:c,]
+          l0=el.test.newton(x=x10,mu=rep(0,2)) 
+          l1=el.test.newton(x=x11,mu=rep(0,2)) 
+          if(abs(sum(l0$wts)-1)<0.01&abs(sum(l1$wts)-1)<0.01){
+            z[i]=exp(0.5*(l0$`-2LLR`-l1$`-2LLR`))
+          }
+        }
+        z=na.omit(z)
+        if(length(z)==0){
+          x9=rbind(x9,rnorm(n=1,mean=mu0,sd=1))
+          c=c+1
+          print(c)
+          h0=rbind(h0,c(exp(-y1*x9[i]),exp(-y2*x9[i]))-x5)
+          h1=rbind(h1,c(exp(-y1*x9[i]),exp(-y2*x9[i]))-x8)
+        }
+        if(length(z)>0){
+          if(sum(z)>threshold){
+                    false=false+1
+            break
+          }
+        }
+        if(length(z)>0){
+          if(sum(z)<=threshold){
+            x9=rbind(x9,rnorm(n=1,mean=mu0,sd=1))
+            c=c+1
+            print(c)
+            h0=rbind(h0,c(exp(-y1*x9[i]),exp(-y2*x9[i]))-x5)
+            h1=rbind(h1,c(exp(-y1*x9[i]),exp(-y2*x9[i]))-x8)
+          }
+        }
+        if(c>=49){
+          break
+        }
+      }
+      if(sum(z)>threshold){
+       
+        break
+      }
+      if(c>=49){
+        break
+      }
+    }
+    if(c>=49){
+      break
+    }
+    if(false>=10){
+      break
+    }
+  }
+  nodetect=0
+  if(false<10){
+    repeat{
+      x9=rbind(x9,rnorm(n=1,mean=mu1,sd=1))
+      c=c+1
+      h0=rbind(h0,c(exp(-y1*x9[c]),exp(-y2*x9[c]))-x5)
+      h1=rbind(h1,c(exp(-y1*x9[c]),exp(-y2*x9[c]))-x8)
+      z=numeric()
+      for(i in 1:(c-2)){
+        x10=h0[i:c,]
+        x11=h1[i:c,]
+        l0=el.test.newton(x=x10,mu=rep(0,2)) 
+        l1=el.test.newton(x=x11,mu=rep(0,2)) 
+        if(abs(sum(l0$wts)-1)<0.01&abs(sum(l1$wts)-1)<0.01){
+          z[i]=exp(0.5*(l0$`-2LLR`-l1$`-2LLR`))
+        }
+      }
+      z=na.omit(z)
+      if(length(z)==0){
+        x9=rbind(x9,rnorm(n=1,mean=mu1,sd=1))
+        c=c+1
+        print(c)
+        h0=rbind(h0,c(exp(-y1%*%x9[c,]),exp(-y2%*%x9[c,]))-x5)
+        h1=rbind(h1,c(exp(-y1%*%x9[c,]),exp(-y2%*%x9[c,]))-x8)
+      }
+      if(length(z)>0){
+        if(sum(z)>threshold){
+          break
+        }
+      }
+      if(length(z)>0){
+        if(sum(z)<=threshold){
+          x9=rbind(x9,rnorm(n=1,mean=mu1,sd=1))
+          c=c+1
+          print(c)
+          h0=rbind(h0,c(exp(-y1*x9[c]),exp(-y2*x9[c]))-x5)
+          h1=rbind(h1,c(exp(-y1*x9[c]),exp(-y2*x9[c]))-x8)
+        }
+      }
+      if(c>=101){
+        break
+      }
+    }
+    if(length(z)==0){
+      z=c(0)
+    }
+    if(sum(z)<=threshold){
+      repeat{
+        z=numeric()
+        x9=rbind(x9,rnorm(n=1,mean=mu1,sd=1))
+        h0=rbind(h0,c(exp(-y1*x9[c]),exp(-y2*x9[c]))-x5)
+        h1=rbind(h1,c(exp(-y1*x9[c]),exp(-y2*x9[c]))-x8)
+        current0=h0[(nrow(h0)-99):nrow(h0),]
+        current1=h1[(nrow(h1)-99):nrow(h1),]
+        z=numeric()
+        for(i in 1:(nrow(current0)-2)){
+          x10=current0[i:nrow(current0),]
+          x11=current1[i:nrow(current0),]
+          l0=el.test.newton(x=x10,mu=rep(0,2)) 
+          l1=el.test.newton(x=x11,mu=rep(0,2)) 
+          if(abs(sum(l0$wts)-1)<0.01&abs(sum(l1$wts)-1)<0.01){
+            z[i]=exp(0.5*(l0$`-2LLR`-l1$`-2LLR`))
+          }
+        }
+        z=na.omit(z)
+        if(length(z)==0){
+          x9=rbind(x9,rnorm(n=1,mean=mu1,sd=1))
+          c=c+1
+          print(c)
+          h0=rbind(h0,c(exp(-y1*x9[c]),exp(-y2*x9[c]))-x5)
+          h1=rbind(h1,c(exp(-y1*x9[c]),exp(-y2*x9[c]))-x8)
+        }
+        if(length(z)>0){
+          print(sum(z))
+          if(sum(z)>threshold){
+            break
+          }
+        }
+        if(length(z)>0){
+          print(sum(z))
+          if(sum(z)<=threshold){
+            x9=rbind(x9,rnorm(n=1,mean=mu1,sd=1))
+            c=c+1
+            print(c)
+            h0=rbind(h0,c(exp(-y1*x9[c]),exp(-y2*x9[c]))-x5)
+            h1=rbind(h1,c(exp(-y1*x9[c]),exp(-y2*x9[c]))-x8)
+          }
+        }
+        if(c>1000){
+          nodetect=nodetect+1
+          break
+        }
+      }
+    }
+    return(c(c-50,nodetect))
+  }
+  if(false){
+    return("false")
+  }
+}
+
+
+ARL1=numeric()
+SDRL1=numeric()
+ND=numeric()
+FAP=numeric()
+for(i in 1:length(thresholds)){
+  arl2=numeric()
+  a1=numeric()
+  a2=numeric()
+  repeat{
+    a=foreach(i=1:1000, .combine="c")%dopar%{
+      library(el.convex)
+      library(MASS)
+      el1_laplace(threshold =thresholds[i],m=size[i])
+    }
+    FAP=sum(a=="false")/1000
+    arl2=c(arl2,a[a!="false"])
+    if(length(arl2)>2000){
+      break
+    }
+  }
+  arl2=arl2[1:2000]
+  for(j in 1:1000){
+    a1[j]=arl2[2*i-1]
+    a2[j]=arl2[2*i]
+  }
+  ARL1[i]=mean(na.omit(a1))
+  SDRL1[i]=sd(na.omit(a1))/sqrt(1000)
+  ND[i]=sum(na.omit(a2))
+  FAP[i]=FAP
+}
+
+
+
+
+
+
+outname="table1_EL-LAP.RData"
+result=list(data.frame(size,thresholds,ARL1,SDRL1,ND,FAP))
+save(result,file = outname)
+
